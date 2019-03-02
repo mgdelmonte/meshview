@@ -1,12 +1,14 @@
 package meshview
 
 import (
+	//"fmt"
 	"math"
 
 	"github.com/fogleman/fauxgl"
 	"github.com/go-gl/glfw/v3.2/glfw"
 )
 
+// Interactor (MGD) handles events
 type Interactor interface {
 	Matrix(window *glfw.Window) fauxgl.Matrix
 	CursorPositionCallback(window *glfw.Window, x, y float64)
@@ -15,6 +17,7 @@ type Interactor interface {
 	ScrollCallback(window *glfw.Window, dx, dy float64)
 }
 
+// BindInteractor (MGD) binds it to callbacks
 func BindInteractor(window *glfw.Window, interactor Interactor) {
 	window.SetCursorPosCallback(glfw.CursorPosCallback(interactor.CursorPositionCallback))
 	window.SetMouseButtonCallback(glfw.MouseButtonCallback(interactor.MouseButtonCallback))
@@ -81,6 +84,7 @@ func BindInteractor(window *glfw.Window, interactor Interactor) {
 
 // Arcball
 
+// Arcball (MGD)
 type Arcball struct {
 	Sensitivity float64
 	Start       fauxgl.Vector
@@ -92,6 +96,7 @@ type Arcball struct {
 	Pan         bool
 }
 
+// NewArcball (MGD)
 func NewArcball() Interactor {
 	a := Arcball{}
 	a.Sensitivity = 20
@@ -99,6 +104,7 @@ func NewArcball() Interactor {
 	return &a
 }
 
+// CursorPositionCallback (MGD)
 func (a *Arcball) CursorPositionCallback(window *glfw.Window, x, y float64) {
 	if a.Rotate {
 		a.Current = arcballVector(window)
@@ -108,6 +114,7 @@ func (a *Arcball) CursorPositionCallback(window *glfw.Window, x, y float64) {
 	}
 }
 
+// MouseButtonCallback (MGD)
 func (a *Arcball) MouseButtonCallback(window *glfw.Window, button glfw.MouseButton, action glfw.Action, mods glfw.ModifierKey) {
 	if button == glfw.MouseButton1 {
 		if action == glfw.Press {
@@ -137,36 +144,52 @@ func (a *Arcball) MouseButtonCallback(window *glfw.Window, button glfw.MouseButt
 	}
 }
 
+// KeyCallback (MGD)
 func (a *Arcball) KeyCallback(window *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
-	if action == glfw.Press && mods == 0 {
-		if key >= 49 && key <= 55 {
+	if (action == glfw.Press || action == glfw.Repeat) && mods == 0 {
+		if key >= glfw.Key1 && key <= glfw.Key7 {
 			a.Translation = fauxgl.Vector{}
 			a.Scroll = 0
 		}
 		switch key {
-		case 49: //1
+		case glfw.Key1:
 			a.Rotation = fauxgl.Identity()
-		case 50:
+		case glfw.Key2:
 			a.Rotation = fauxgl.Identity().Rotate(fauxgl.V(0, 0, 1), math.Pi/2)
-		case 51:
+		case glfw.Key3:
 			a.Rotation = fauxgl.Identity().Rotate(fauxgl.V(0, 0, 1), math.Pi)
-		case 52:
+		case glfw.Key4:
 			a.Rotation = fauxgl.Identity().Rotate(fauxgl.V(0, 0, 1), -math.Pi/2)
-		case 53:
+		case glfw.Key5:
 			a.Rotation = fauxgl.Identity().Rotate(fauxgl.V(1, 0, 0), math.Pi/2)
-		case 54:
+		case glfw.Key6:
 			a.Rotation = fauxgl.Identity().Rotate(fauxgl.V(1, 0, 0), -math.Pi/2)
-		case 55:
+		case glfw.Key7:
 			a.Rotation = fauxgl.Identity().Rotate(fauxgl.V(1, 1, 0).Normalize(), -math.Pi/4).Rotate(fauxgl.V(0, 0, 1), math.Pi/4)
-		case 88: //X
+		case glfw.KeyLeft:
+			a.Rotation = a.Rotation.Rotate(fauxgl.V(0,0,1), -math.Pi/60)
+		case glfw.KeyRight:
+			a.Rotation = a.Rotation.Rotate(fauxgl.V(0,0,1), math.Pi/60)
+		case glfw.KeyUp:
+			if sliceIndex < sliceMax {
+				sliceIndex++
+				lastMatrix = fauxgl.Matrix{}
+			}
+		case glfw.KeyDown:
+			if sliceIndex > 0 {
+				sliceIndex--
+				lastMatrix = fauxgl.Matrix{}
+			}
 		}
 	}
 }
 
+// ScrollCallback (MGD)
 func (a *Arcball) ScrollCallback(window *glfw.Window, dx, dy float64) {
 	a.Scroll += dy
 }
 
+// Matrix (MGD)
 func (a *Arcball) Matrix(window *glfw.Window) fauxgl.Matrix {
 	w, h := window.GetFramebufferSize()
 	aspect := float64(w) / float64(h)
@@ -184,6 +207,7 @@ func (a *Arcball) Matrix(window *glfw.Window) fauxgl.Matrix {
 	m = r.Mul(m)
 	m = m.Translate(t)
 	m = m.LookAt(fauxgl.V(0, -3, 0), fauxgl.V(0, 0, 0), fauxgl.V(0, 0, 1))
+	//fmt.Println("skipping", aspect)
 	m = m.Perspective(50, aspect, 0.1, 100)
 	return m
 }
@@ -193,7 +217,7 @@ func screenPosition(window *glfw.Window) fauxgl.Vector {
 	w, h := window.GetSize()
 	x = (x/float64(w))*2 - 1
 	y = (y/float64(h))*2 - 1
-	return fauxgl.Vector{x, 0, -y}
+	return fauxgl.Vector{X:x, Y:0, Z:-y}
 }
 
 func arcballVector(window *glfw.Window) fauxgl.Vector {
@@ -207,10 +231,9 @@ func arcballVector(window *glfw.Window) fauxgl.Vector {
 	q := x*x + y*y
 	if q <= 1 {
 		z := math.Sqrt(1 - q)
-		return fauxgl.Vector{x, z, y}
-	} else {
-		return fauxgl.Vector{x, 0, y}.Normalize()
-	}
+		return fauxgl.Vector{X:x, Y:z, Z:y}
+	} 
+	return fauxgl.Vector{X:x, Y:0, Z:y}.Normalize()
 }
 
 func arcballRotate(a, b fauxgl.Vector, sensitivity float64) fauxgl.Matrix {

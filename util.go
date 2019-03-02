@@ -8,6 +8,8 @@ import (
 	"github.com/fogleman/fauxgl"
 )
 
+
+// LoadMesh (MGD)
 func LoadMesh(path string) (*MeshData, error) {
 	ext := strings.ToLower(filepath.Ext(path))
 	switch ext {
@@ -49,7 +51,7 @@ func boxForData(data []float32) fauxgl.Box {
 			maxz = z
 		}
 	}
-	min := fauxgl.Vector{float64(minx), float64(miny), float64(minz)}
-	max := fauxgl.Vector{float64(maxx), float64(maxy), float64(maxz)}
-	return fauxgl.Box{min, max}
+	min := fauxgl.Vector{X:float64(minx), Y:float64(miny), Z:float64(minz)}
+	max := fauxgl.Vector{X:float64(maxx), Y:float64(maxy), Z:float64(maxz)}
+	return fauxgl.Box{Min:min, Max:max}
 }

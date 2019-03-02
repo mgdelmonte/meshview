@@ -16,6 +16,7 @@ func parseIndex(value string, count int) int {
 	return n
 }
 
+// LoadOBJ (MGD)
 func LoadOBJ(path string) (*MeshData, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -66,5 +67,9 @@ func LoadOBJ(path string) (*MeshData, error) {
 	}
 
 	box := boxForData(data)
-	return &MeshData{data, box}, scanner.Err()
+	//md := MeshData{}
+	//md.Buffer = data
+	//md.Box = box
+	//return &md, scanner.Err()
+	return &MeshData{data, box, nil}, scanner.Err()
 }

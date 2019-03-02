@@ -4,15 +4,53 @@ import (
 	"bufio"
 	"encoding/binary"
 	"io"
+	//"log"
 	"math"
 	"os"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
+	"github.com/fogleman/fauxgl"
 )
 
+// FauxMesh2MeshData converts a fauxgl.Mesh to MeshData
+func FauxMesh2MeshData(mesh *fauxgl.Mesh) *MeshData {
+	md := MeshData{}
+	for _, t := range mesh.Triangles {
+		//md.Buffer[i*3+0] = float32(t.V1.Position.X)
+		//md.Buffer[i*3+1] = float32(t.V1.Position.Y)
+		//md.Buffer[i*3+2] = float32(t.V1.Position.Z)
+		md.Buffer = append(md.Buffer, float32(t.V1.Position.X))
+		md.Buffer = append(md.Buffer, float32(t.V1.Position.Y))
+		md.Buffer = append(md.Buffer, float32(t.V1.Position.Z))
+
+		md.Buffer = append(md.Buffer, float32(t.V2.Position.X))
+		md.Buffer = append(md.Buffer, float32(t.V2.Position.Y))
+		md.Buffer = append(md.Buffer, float32(t.V2.Position.Z))
+
+		md.Buffer = append(md.Buffer, float32(t.V3.Position.X))
+		md.Buffer = append(md.Buffer, float32(t.V3.Position.Y))
+		md.Buffer = append(md.Buffer, float32(t.V3.Position.Z))
+	}
+	md.Box = mesh.BoundingBox()
+	md.Triangles = mesh.Triangles
+	return &md
+}
+
+
+
+// LoadSTL loads an STL file (MGD version, loads via fauxgl.LoadSTL)
 func LoadSTL(path string) (*MeshData, error) {
+	mesh, err := fauxgl.LoadSTL(path)
+	if err != nil { 
+		return &MeshData{}, err
+	}
+	return FauxMesh2MeshData(mesh), err
+}
+
+
+func xLoadSTL(path string) (*MeshData, error) {
 	// open file
 	file, err := os.Open(path)
 	if err != nil {
@@ -40,14 +78,13 @@ func LoadSTL(path string) (*MeshData, error) {
 	// parse ascii or binary stl
 	if info.Size() == expectedSize {
 		return loadSTLB(file, int(header.Count))
-	} else {
-		// rewind to start of file
-		_, err = file.Seek(0, 0)
-		if err != nil {
-			return nil, err
-		}
-		return loadSTLA(file)
 	}
+	// rewind to start of file
+	_, err = file.Seek(0, 0)
+	if err != nil {
+		return nil, err
+	}
+	return loadSTLA(file)
 }
 
 func loadSTLA(file *os.File) (*MeshData, error) {
@@ -85,7 +122,7 @@ func loadSTLA(file *os.File) (*MeshData, error) {
 		i++
 	}
 	box := boxForData(data)
-	return &MeshData{data, box}, scanner.Err()
+	return &MeshData{data, box, nil}, scanner.Err()
 }
 
 func makeFloat(b []byte) float32 {
@@ -134,7 +171,7 @@ func loadSTLB(file *os.File, count int) (*MeshData, error) {
 		}(wi)
 	}
 	wg.Wait()
-
+	//log.Println(data)
 	box := boxForData(data)
-	return &MeshData{data, box}, nil
+	return &MeshData{data, box, nil}, nil
 }
